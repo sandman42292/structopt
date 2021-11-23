@@ -5,6 +5,7 @@
 #include <cctype>
 #include <iostream>
 #include <iterator>
+#include <optional>
 #include <set>
 #include <sstream>
 #include <string>
@@ -191,7 +192,7 @@ struct parser {
 
     if (next.size() == 2 && next[0] == '-') {
       // short form of optional argument
-      for (auto& oarg : visitor.optional_field_names) {
+      for (auto& [oarg, default_value_str] : visitor.optional_field_names) {
         if (oarg[0] == next[1]) {
           // second character of next matches first character of some optional field_name
           result = oarg;
@@ -208,7 +209,7 @@ struct parser {
       std::replace(potential_field_name.begin(), potential_field_name.end(), '-', '_');
 
       // check if `potential_field_name` is in the optional field names list
-      for (auto& oarg : visitor.optional_field_names) {
+      for (auto& [oarg, default_value_str] : visitor.optional_field_names) {
         if (oarg == potential_field_name) {
           result = oarg;
           break;

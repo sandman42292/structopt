@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <structopt/is_stl_container.hpp>
 #include <structopt/parser.hpp>
@@ -28,8 +29,8 @@ public:
     visit_struct::for_each(argument_struct, visitor);
 
     // add `help` and `version` optional arguments
-    visitor.optional_field_names.push_back("help");
-    visitor.optional_field_names.push_back("version");
+    visitor.optional_field_names.emplace_back("help", std::nullopt);
+    visitor.optional_field_names.emplace_back("version", std::nullopt);
 
     // Construct the argument parser
     structopt::details::parser parser;

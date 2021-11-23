@@ -9,6 +9,7 @@
 #include <structopt/string.hpp>
 #include <structopt/third_party/visit_struct/visit_struct.hpp>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace structopt {
@@ -26,7 +27,7 @@ struct visitor {
   std::deque<std::string> positional_field_names_for_help;
   std::deque<std::string> vector_like_positional_field_names;
   std::deque<std::string> flag_field_names;
-  std::deque<std::string> optional_field_names;
+  std::deque<std::pair<std::string, std::optional<std::string>>> optional_field_names;
   std::deque<std::string> nested_struct_field_names;
 
   visitor() = default;
@@ -41,12 +42,18 @@ struct visitor {
   template <typename T>
   inline typename std::enable_if<structopt::is_specialization<T, std::optional>::value,
                                  void>::type
-  operator()(const char *name, T &) {
+  operator()(const char *name, T & value) {
     field_names.push_back(name);
     if constexpr (std::is_same<typename T::value_type, bool>::value) {
       flag_field_names.push_back(name);
+    } else if constexpr (std::is_same<typename T::value_type, std::string>::value) {
+      optional_field_names.emplace_back(
+        name, value ? std::optional(*value) : std::optional<std::string>());
+    } else if constexpr (std::is_arithmetic<typename T::value_type>::value) {
+      optional_field_names.emplace_back(
+        name, value ? std::optional(std::to_string(*value)) : std::optional<std::string>());
     } else {
-      optional_field_names.push_back(name);
+      optional_field_names.emplace_back(name, std::nullopt);
     }
   }
 
@@ -121,7 +128,7 @@ struct visitor {
 
       if (optional_field_names.empty() == false) {
         os << "\nOPTIONS:\n";
-        for (auto &option : optional_field_names) {
+        for (auto & [option, default_value_str] : optional_field_names) {
 
           // Generate kebab case and present as option
           auto kebab_case = option;
@@ -133,8 +140,11 @@ struct visitor {
             long_form = option;
           }
 
-          os << "    -" << option[0] << ", --" << long_form << " <" << option << ">"
-            << "\n";
+          os << "    -" << option[0] << ", --" << long_form << " <" << option << ">";
+          if(default_value_str) {
+              os << "=" << default_value_str.value();
+          }
+          os << "\n";
         }
       }
 
